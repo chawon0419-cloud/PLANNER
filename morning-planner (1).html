@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0f1e">
+<title>모닝 플래너</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: rgba(255,255,255,0.07);
+    --accent: #4f9cf9;
+    --accent2: #a78bfa;
+    --accent3: #34d399;
+    --warm: #fbbf24;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --danger: #f87171;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 430px;
+    margin: 0 auto;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Ambient background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; left: -200px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(79,156,249,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -150px; right: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(167,139,250,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NAV */
+  .nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    background: rgba(17,24,39,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  .nav-btn svg { transition: all 0.2s; }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn.active svg { filter: drop-shadow(0 0 6px var(--accent)); }
+
+  /* SCREENS */
+  .screen { display: none; padding: 0 0 90px; position: relative; z-index: 1; }
+  .screen.active { display: block; }
+
+  /* HEADER */
+  .header {
+    padding: 56px 20px 20px;
+  }
+
+  .greeting {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    line-height: 1.2;
+    color: var(--text);
+  }
+
+  .greeting span {
+    font-style: italic;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .date-line {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-weight: 300;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* WEATHER CARD */
+  .weather-card {
+    margin: 16px 20px;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid rgba(79,156,249,0.2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .weather-card::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(79,156,249,0.15), transparent 70%);
+    border-radius: 50%;
+  }
+
+  .weather-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .weather-temp {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 52px;
+    font-weight: 300;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .weather-temp sup {
+    font-size: 20px;
+    vertical-align: top;
+    margin-top: 10px;
+    display: inline-block;
+    color: rgba(255,255,255,0.6);
+  }
+
+  .weather-icon { font-size: 48px; }
+
+  .weather-desc { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 8px; }
+  .weather-city { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; letter-spacing: 1px; text-transform: uppercase; }
+
+  .weather-details {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .weather-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .weather-detail-label { font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 0.5px; }
+  .weather-detail-value { font-size: 13px; color: rgba(255,255,255,0.8); font-weight: 500; }
+
+  .weather-loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* SECTION */
+  .section { padding: 0 20px; margin-bottom: 24px; }
+  .section-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* NEWS CARD */
+  .news-category-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .news-category-tabs::-webkit-scrollbar { display: none; }
+
+  .cat-tab {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .cat-tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .news-card {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .news-card:active { transform: scale(0.98); background: var(--surface2); }
+
+  .news-source {
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .news-title {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .news-meta {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ROUTINE */
+  .routine-item {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .routine-check {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    transition: all 0.25s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  .routine-item.done .routine-check {
+    background: var(--accent3);
+    border-color: var(--accent3);
+  }
+
+  .routine-item.done .routine-name {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  .routine-info { flex: 1; }
+  .routine-name { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+  .routine-time { font-size: 11px; color: var(--muted); }
+  .routine-emoji { font-size: 20px; }
+
+  .routine-progress {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    border: 1px solid var(--border);
+  }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent3), var(--accent));
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+
+  .add-btn {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+  }
+  .add-btn:active { background: var(--surface); color: var(--text); }
+
+  /* SCHEDULE */
+  .schedule-item {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .schedule-item::before {
+    content: '';
+    position: absolute;
+    left: 44px;
+    top: 28px;
+    bottom: -16px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .schedule-item:last-child::before { display: none; }
+
+  .schedule-time-col {
+    width: 44px;
+    flex-shrink: 0;
+    text-align: right;
+    padding-top: 12px;
+  }
+
+  .schedule-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+
+  .schedule-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    margin-top: 16px;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .schedule-card {
+    flex: 1;
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+  }
+
+  .schedule-title { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+  .schedule-detail { font-size: 12px; color: var(--muted); }
+
+  .schedule-card.purple { border-left-color: var(--accent2); }
+  .schedule-card.green { border-left-color: var(--accent3); }
+  .schedule-card.yellow { border-left-color: var(--warm); }
+
+  /* SETTINGS */
+  .settings-section {
+    margin-bottom: 24px;
+  }
+
+  .settings-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 20px 10px;
+  }
+
+  .settings-group {
+    background: var(--surface);
+    border-radius: 16px;
+    margin: 0 20px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-row:last-child { border-bottom: none; }
+
+  .settings-row-left { display: flex; align-items: center; gap: 12px; }
+  .settings-row-icon { font-size: 18px; }
+  .settings-row-text { font-size: 14px; }
+  .settings-row-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  .toggle {
+    width: 44px; height: 26px;
+    background: var(--surface2);
+    border-radius: 13px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    flex-shrink: 0;
+  }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: all 0.3s;
+  }
+
+  .toggle.on { background: var(--accent); }
+  .toggle.on::after { left: 21px; background: #fff; }
+
+  .chip-group { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 16px; }
+  .chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .chip.active { background: rgba(79,156,249,0.15); border-color: var(--accent); color: var(--accent); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    width: 100%;
+    max-width: 430px;
+    margin: 0 auto;
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    padding: 20px 20px 40px;
+    border-top: 1px solid var(--border);
+    transform: translateY(100%);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    margin: 0 auto 20px;
+  }
+
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+
+  .input-field {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-field:focus { border-color: var(--accent); }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+
+  .btn {
+    flex: 1;
+    padding: 13px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--surface2); color: var(--muted); }
+  .btn:active { transform: scale(0.97); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: rgba(30,40,60,0.95);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 10px 18px;
+    font-size: 13px;
+    z-index: 300;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(10px);
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 0 20px 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 14px;
+    border: 1px solid var(--border);
+  }
+
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 300; }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .stat-value.green { color: var(--accent3); }
+  .stat-value.blue { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- SCREENS -->
+<div class="screen active" id="home">
+  <div class="header">
+    <div class="greeting">안녕하세요, <span id="greeting-name">좋은 아침</span>이에요 ☀️</div>
+    <div class="date-line" id="date-display"></div>
+  </div>
+
+  <!-- Weather -->
+  <div id="weather-container">
+    <div class="weather-card">
+      <div class="weather-loading">날씨 정보를 불러오는 중...</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">오늘 루틴</div>
+      <div class="stat-value green" id="home-routine-stat">0/0</div>
+      <div class="stat-sub">완료됨</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">오늘 일정</div>
+      <div class="stat-value blue" id="home-schedule-stat">0</div>
+      <div class="stat-sub">개 예정</div>
+    </div>
+  </div>
+
+  <!-- Quick news -->
+  <div class="section">
+    <div class="section-title">오늘의 소식</div>
+    <div id="home-news"></div>
+  </div>
+</div>
+
+<div class="screen" id="news">
+  <div class="header">
+    <div class="greeting"><span>뉴스</span></div>
+    <div class="date-line">관심 분야별 소식</div>
+  </div>
+  <div class="section">
+    <div class="news-category-tabs" id="cat-tabs"></div>
+    <div id="news-list"></div>
+  </div>
+</div>
+
+<div class="screen" id="routine">
+  <div class="header">
+    <div class="greeting"><span>아침 루틴</span></div>
+    <div class="date-line">오늘 나의 루틴</div>
+  </div>
+  <div class="section">
+    <div class="routine-progress">
+      <div class="progress-label">
+        <span>진행도</span>
+        <span id="routine-progress-text">0 / 0 완료</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="routine-progress-fill" style="width:0%"></div></div>
+    </div>
+    <div id="routine-list"></div>
+    <button class="add-btn" onclick="openRoutineModal()">+ 루틴 추가</button>
+  </div>
+</div>
+
+<div class="screen" id="schedule">
+  <div class="header">
+    <div class="greeting"><span>일정</span></div>
+    <div class="date-line" id="schedule-date"></div>
+  </div>
+  <div class="section">
+    <div id="schedule-list"></div>
+    <button class="add-btn" onclick="openScheduleModal()">+ 일정 추가</button>
+  </div>
+</div>
+
+<div class="screen" id="settings">
+  <div class="header">
+    <div class="greeting"><span>설정</span></div>
+    <div class="date-line">앱 맞춤 설정</div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">뉴스 카테고리</div>
+    <div class="chip-group" id="news-chips"></div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">알림</div>
+    <div class="settings-group">
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-icon">⏰</div>
+          <div><div class="settings-row-text">아침 루틴 알림</div><div class="settings-row-sub">매일 아침 7:00</div></div>
+        </div>
+        <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-icon">📰</div>
+          <div><div class="settings-row-text">뉴스 알림</div><div class="settings-row-sub">중요 뉴스 속보</div></div>
+        </div>
+        <button class="toggle" onclick="this.classList.toggle('on')"></button>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-icon">📅</div>
+          <div><div class="settings-row-text">일정 알림</div><div class="settings-row-sub">시작 30분 전</div></div>
+        </div>
+        <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">이름</div>
+    <div class="settings-group">
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-icon">👤</div>
+          <div><div class="settings-row-text">내 이름</div></div>
+        </div>
+        <input class="input-field" id="user-name-input" placeholder="이름 입력" style="width:120px;margin:0;text-align:right;background:transparent;border:none;color:var(--muted);font-size:14px;" oninput="saveName(this.value)">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="showScreen('home', this)">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+    홈
+  </button>
+  <button class="nav-btn" onclick="showScreen('news', this)">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8z"/></svg>
+    뉴스
+  </button>
+  <button class="nav-btn" onclick="showScreen('routine', this)">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    루틴
+  </button>
+  <button class="nav-btn" onclick="showScreen('schedule', this)">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    일정
+  </button>
+  <button class="nav-btn" onclick="showScreen('settings', this)">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    설정
+  </button>
+</nav>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="routine-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">루틴 추가</div>
+    <input class="input-field" id="routine-name-input" placeholder="루틴 이름 (예: 스트레칭)">
+    <input class="input-field" id="routine-time-input" placeholder="시간 (예: 07:00 - 07:10)">
+    <input class="input-field" id="routine-emoji-input" placeholder="이모지 (예: 🧘)">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('routine-modal')">취소</button>
+      <button class="btn btn-primary" onclick="addRoutine()">추가</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="schedule-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">일정 추가</div>
+    <input class="input-field" id="schedule-title-input" placeholder="일정 제목">
+    <input class="input-field" id="schedule-time-input" type="time">
+    <input class="input-field" id="schedule-detail-input" placeholder="상세 내용 (선택)">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('schedule-modal')">취소</button>
+      <button class="btn btn-primary" onclick="addSchedule()">추가</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+const state = {
+  routines: JSON.parse(localStorage.getItem('routines') || 'null') || [
+    { id: 1, name: '기상 & 스트레칭', time: '07:00 - 07:10', emoji: '🧘', done: false },
+    { id: 2, name: '물 한 잔 마시기', time: '07:10 - 07:12', emoji: '💧', done: false },
+    { id: 3, name: '명상 5분', time: '07:12 - 07:17', emoji: '🧠', done: false },
+    { id: 4, name: '아침 식사', time: '07:30 - 07:50', emoji: '🍳', done: false },
+  ],
+  schedules: JSON.parse(localStorage.getItem('schedules') || 'null') || [
+    { id: 1, title: '팀 미팅', time: '09:00', detail: '주간 업무 보고', color: '' },
+    { id: 2, title: '점심 약속', time: '12:00', detail: '강남역 2번 출구', color: 'green' },
+    { id: 3, title: '운동', time: '18:00', detail: '헬스장 1시간', color: 'purple' },
+  ],
+  newsCategories: JSON.parse(localStorage.getItem('newsCategories') || 'null') || ['IT/과학', '경제'],
+  userName: localStorage.getItem('userName') || '',
+};
+
+const allCategories = ['정치', '경제', 'IT/과학', '사회', '문화', '스포츠', '세계', '건강'];
+
+const newsDB = {
+  'IT/과학': [
+    { source: '테크크런치', title: 'AI 에이전트 시대 본격 개막…주요 빅테크 2025년 로드맵 공개', time: '2시간 전' },
+    { source: '연합뉴스', title: '삼성, 차세대 엑시노스 칩셋 성능 벤치마크 유출 화제', time: '4시간 전' },
+    { source: 'ZDNet', title: '오픈소스 LLM 생태계 급성장…메타와 구글 주도권 경쟁 치열', time: '6시간 전' },
+  ],
+  '경제': [
+    { source: '한국경제', title: '코스피 2,700선 회복…외국인 순매수 이어져', time: '1시간 전' },
+    { source: '매일경제', title: '원달러 환율 1,320원대 안착…수출기업 실적 개선 기대', time: '3시간 전' },
+    { source: '이데일리', title: '반도체 업황 회복 신호?…SK하이닉스 HBM 수주 잔고 사상 최대', time: '5시간 전' },
+  ],
+  '정치': [
+    { source: '연합뉴스', title: '국회, 내년도 예산안 심의 본격 착수…여야 협상 주목', time: '2시간 전' },
+    { source: 'KBS', title: '대통령실, 한일 정상회담 일정 조율 중…연내 개최 가능성', time: '5시간 전' },
+  ],
+  '사회': [
+    { source: '조선일보', title: '서울 미세먼지 "나쁨"…내일까지 마스크 착용 권고', time: '1시간 전' },
+    { source: '한겨레', title: '저출산 대책 새 패키지 발표…육아휴직 급여 상향 포함', time: '4시간 전' },
+  ],
+  '문화': [
+    { source: '문화일보', title: '칸 영화제 한국 감독 초청작 화제…현지 평단 극찬', time: '3시간 전' },
+    { source: '연합뉴스', title: '한류 콘텐츠 수출액 첫 10조 원 돌파…K드라마 견인', time: '7시간 전' },
+  ],
+  '스포츠': [
+    { source: 'OSEN', title: '손흥민, 시즌 10호 골 폭발…토트넘 3연승 견인', time: '30분 전' },
+    { source: '스포츠조선', title: 'LG 트윈스, 개막전 서울시리즈 티켓 예매 전쟁 예고', time: '5시간 전' },
+  ],
+  '세계': [
+    { source: 'BBC Korea', title: '미·중 무역 협상 재개 신호…반도체 관세 완화 논의', time: '2시간 전' },
+    { source: 'VOA', title: 'EU, 탄소국경세 2026년 전면 시행 확정', time: '6시간 전' },
+  ],
+  '건강': [
+    { source: '의학신문', title: '항생제 내성균 확산 경고…WHO, 전 세계 주의 당부', time: '4시간 전' },
+    { source: '헬스조선', title: '하루 30분 걷기, 당뇨 위험 최대 35% 감소 효과', time: '8시간 전' },
+  ],
+};
+
+// ── INIT ──
+function init() {
+  setDate();
+  loadWeather();
+  renderNews();
+  renderRoutine();
+  renderSchedule();
+  renderSettings();
+  updateHomeStats();
+
+  const nameInput = document.getElementById('user-name-input');
+  if (state.userName) nameInput.value = state.userName;
+  updateGreeting();
+}
+
+function setDate() {
+  const now = new Date();
+  const days = ['일','월','화','수','목','금','토'];
+  const d = `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 (${days[now.getDay()]})`;
+  document.getElementById('date-display').textContent = d;
+  document.getElementById('schedule-date').textContent = d;
+}
+
+function updateGreeting() {
+  const hour = new Date().getHours();
+  let g = hour < 12 ? '좋은 아침' : hour < 18 ? '좋은 오후' : '좋은 저녁';
+  if (state.userName) g = state.userName + '님, ' + g;
+  document.getElementById('greeting-name').textContent = g;
+}
+
+// ── WEATHER ──
+function loadWeather() {
+  if (!navigator.geolocation) {
+    showMockWeather();
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(pos => {
+    fetchWeather(pos.coords.latitude, pos.coords.longitude);
+  }, () => {
+    showMockWeather();
+  }, { timeout: 5000 });
+}
+
+async function fetchWeather(lat, lon) {
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&wind_speed_unit=ms&timezone=auto`);
+    const data = await res.json();
+    const c = data.current;
+    renderWeather(
+      Math.round(c.temperature_2m),
+      Math.round(c.apparent_temperature),
+      c.relative_humidity_2m,
+      Math.round(c.wind_speed_10m * 10) / 10,
+      c.weather_code,
+      '현재 위치'
+    );
+  } catch {
+    showMockWeather();
+  }
+}
+
+function showMockWeather() {
+  renderWeather(18, 16, 55, 2.3, 1, '서울');
+}
+
+function getWeatherInfo(code) {
+  if (code === 0) return { emoji: '☀️', desc: '맑음' };
+  if (code <= 3) return { emoji: '⛅', desc: '구름 조금' };
+  if (code <= 49) return { emoji: '🌫️', desc: '안개' };
+  if (code <= 69) return { emoji: '🌧️', desc: '비' };
+  if (code <= 79) return { emoji: '❄️', desc: '눈' };
+  if (code <= 99) return { emoji: '⛈️', desc: '뇌우' };
+  return { emoji: '🌤️', desc: '흐림' };
+}
+
+function renderWeather(temp, feels, humidity, wind, code, city) {
+  const { emoji, desc } = getWeatherInfo(code);
+  document.getElementById('weather-container').innerHTML = `
+    <div class="weather-card">
+      <div class="weather-top">
+        <div>
+          <div class="weather-temp">${temp}<sup>°C</sup></div>
+          <div class="weather-desc">${desc}</div>
+          <div class="weather-city">${city}</div>
+        </div>
+        <div class="weather-icon">${emoji}</div>
+      </div>
+      <div class="weather-details">
+        <div class="weather-detail">
+          <div class="weather-detail-label">체감</div>
+          <div class="weather-detail-value">${feels}°C</div>
+        </div>
+        <div class="weather-detail">
+          <div class="weather-detail-label">습도</div>
+          <div class="weather-detail-value">${humidity}%</div>
+        </div>
+        <div class="weather-detail">
+          <div class="weather-detail-label">풍속</div>
+          <div class="weather-detail-value">${wind}m/s</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── NEWS ──
+function renderNews() {
+  // Category tabs
+  const tabs = document.getElementById('cat-tabs');
+  tabs.innerHTML = '';
+  const active = state.newsCategories[0] || allCategories[0];
+  state.newsCategories.forEach((cat, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-tab' + (i === 0 ? ' active' : '');
+    btn.textContent = cat;
+    btn.onclick = () => {
+      document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderNewsList(cat);
+    };
+    tabs.appendChild(btn);
+  });
+  renderNewsList(state.newsCategories[0]);
+  renderHomeNews();
+}
+
+function renderNewsList(cat) {
+  const list = document.getElementById('news-list');
+  const items = newsDB[cat] || [];
+  list.innerHTML = items.map(n => `
+    <div class="news-card">
+      <div class="news-source">${n.source}</div>
+      <div class="news-title">${n.title}</div>
+      <div class="news-meta">${n.time}</div>
+    </div>`).join('');
+}
+
+function renderHomeNews() {
+  const el = document.getElementById('home-news');
+  const cat = state.newsCategories[0];
+  const items = (newsDB[cat] || []).slice(0, 2);
+  el.innerHTML = items.map(n => `
+    <div class="news-card">
+      <div class="news-source">${n.source}</div>
+      <div class="news-title">${n.title}</div>
+      <div class="news-meta">${cat} · ${n.time}</div>
+    </div>`).join('');
+}
+
+// ── ROUTINE ──
+function renderRoutine() {
+  const list = document.getElementById('routine-list');
+  const done = state.routines.filter(r => r.done).length;
+  const total = state.routines.length;
+
+  document.getElementById('routine-progress-text').textContent = `${done} / ${total} 완료`;
+  document.getElementById('routine-progress-fill').style.width = total ? (done/total*100)+'%' : '0%';
+
+  list.innerHTML = state.routines.map(r => `
+    <div class="routine-item ${r.done ? 'done' : ''}" onclick="toggleRoutine(${r.id})">
+      <div class="routine-check">${r.done ? '✓' : ''}</div>
+      <div class="routine-info">
+        <div class="routine-name">${r.name}</div>
+        <div class="routine-time">${r.time}</div>
+      </div>
+      <div class="routine-emoji">${r.emoji}</div>
+    </div>`).join('');
+
+  updateHomeStats();
+}
+
+function toggleRoutine(id) {
+  const r = state.routines.find(x => x.id === id);
+  if (r) { r.done = !r.done; saveRoutines(); renderRoutine(); }
+}
+
+function openRoutineModal() {
+  document.getElementById('routine-name-input').value = '';
+  document.getElementById('routine-time-input').value = '';
+  document.getElementById('routine-emoji-input').value = '';
+  document.getElementById('routine-modal').classList.add('open');
+}
+
+function addRoutine() {
+  const name = document.getElementById('routine-name-input').value.trim();
+  const time = document.getElementById('routine-time-input').value.trim();
+  const emoji = document.getElementById('routine-emoji-input').value.trim() || '✅';
+  if (!name) { showToast('루틴 이름을 입력해주세요'); return; }
+  state.routines.push({ id: Date.now(), name, time: time || '설정 안 됨', emoji, done: false });
+  saveRoutines();
+  renderRoutine();
+  closeModal('routine-modal');
+  showToast('루틴이 추가되었어요 🎉');
+}
+
+function saveRoutines() {
+  localStorage.setItem('routines', JSON.stringify(state.routines));
+}
+
+// ── SCHEDULE ──
+const colors = ['', 'purple', 'green', 'yellow'];
+let colorIdx = 0;
+
+function renderSchedule() {
+  const list = document.getElementById('schedule-list');
+  const sorted = [...state.schedules].sort((a,b) => a.time.localeCompare(b.time));
+  list.innerHTML = sorted.map(s => `
+    <div class="schedule-item">
+      <div class="schedule-time-col"><div class="schedule-time">${s.time}</div></div>
+      <div class="schedule-dot"></div>
+      <div class="schedule-card ${s.color}">
+        <div class="schedule-title">${s.title}</div>
+        ${s.detail ? `<div class="schedule-detail">${s.detail}</div>` : ''}
+      </div>
+    </div>`).join('');
+
+  updateHomeStats();
+}
+
+function openScheduleModal() {
+  document.getElementById('schedule-title-input').value = '';
+  document.getElementById('schedule-time-input').value = '';
+  document.getElementById('schedule-detail-input').value = '';
+  document.getElementById('schedule-modal').classList.add('open');
+}
+
+function addSchedule() {
+  const title = document.getElementById('schedule-title-input').value.trim();
+  const time = document.getElementById('schedule-time-input').value;
+  const detail = document.getElementById('schedule-detail-input').value.trim();
+  if (!title) { showToast('일정 제목을 입력해주세요'); return; }
+  if (!time) { showToast('시간을 선택해주세요'); return; }
+  state.schedules.push({ id: Date.now(), title, time, detail, color: colors[colorIdx % colors.length] });
+  colorIdx++;
+  saveSchedules();
+  renderSchedule();
+  closeModal('schedule-modal');
+  showToast('일정이 추가되었어요 📅');
+}
+
+function saveSchedules() {
+  localStorage.setItem('schedules', JSON.stringify(state.schedules));
+}
+
+// ── SETTINGS ──
+function renderSettings() {
+  const chips = document.getElementById('news-chips');
+  chips.innerHTML = allCategories.map(cat => `
+    <button class="chip ${state.newsCategories.includes(cat) ? 'active' : ''}" onclick="toggleCat('${cat}', this)">${cat}</button>
+  `).join('');
+}
+
+function toggleCat(cat, btn) {
+  if (state.newsCategories.includes(cat)) {
+    if (state.newsCategories.length <= 1) { showToast('최소 1개는 선택해야 해요'); return; }
+    state.newsCategories = state.newsCategories.filter(c => c !== cat);
+    btn.classList.remove('active');
+  } else {
+    state.newsCategories.push(cat);
+    btn.classList.add('active');
+  }
+  localStorage.setItem('newsCategories', JSON.stringify(state.newsCategories));
+  renderNews();
+}
+
+function saveName(val) {
+  state.userName = val;
+  localStorage.setItem('userName', val);
+  updateGreeting();
+}
+
+// ── STATS ──
+function updateHomeStats() {
+  const done = state.routines.filter(r => r.done).length;
+  document.getElementById('home-routine-stat').textContent = `${done}/${state.routines.length}`;
+  document.getElementById('home-schedule-stat').textContent = state.schedules.length;
+}
+
+// ── UTILS ──
+function showScreen(id, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+init();
+</script>
+</body>
+</html>
